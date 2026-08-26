@@ -1,0 +1,459 @@
+local Players=game:GetService("Players")
+local RunService=game:GetService("RunService")
+local UserInputService=game:GetService("UserInputService")
+local player=Players.LocalPlayer
+local camera=workspace.CurrentCamera
+local flying=false
+local level=1
+local flySpeed=10
+
+local function getSpeedFromLevel(lvl)
+if lvl == 1 then return 10
+elseif lvl == 2 then return 30
+elseif lvl == 3 then return 50
+elseif lvl == 4 then return 100
+else return 100 + ((lvl - 4) * 100) end
+end
+
+flySpeed = getSpeedFromLevel(level)
+
+local bodyVelocity=nil
+local bodyGyro=nil
+local isMinimized=false
+local isSettingsOpen=false
+local noclipEnabled=false
+local godmodeEnabled=false
+
+local screenGui=Instance.new("ScreenGui")
+screenGui.Name="FlyGui"
+screenGui.ResetOnSpawn=false
+screenGui.Parent=player:WaitForChild("PlayerGui")
+
+local mainFrame=Instance.new("Frame")
+mainFrame.Name="MainFrame"
+mainFrame.Size=UDim2.new(0,220,0,115)
+mainFrame.Position=UDim2.new(0.05,0,0.35,0)
+mainFrame.BackgroundColor3=Color3.fromRGB(25,25,25)
+mainFrame.BorderSizePixel=0
+mainFrame.ClipsDescendants=true
+mainFrame.Parent=screenGui
+
+local mainCorner=Instance.new("UICorner")
+mainCorner.CornerRadius=UDim.new(0,10)
+mainCorner.Parent=mainFrame
+
+local mainStroke=Instance.new("UIStroke")
+mainStroke.Color=Color3.fromRGB(60,60,60)
+mainStroke.Thickness=1.5
+mainStroke.Parent=mainFrame
+
+local topBar=Instance.new("Frame")
+topBar.Name="TopBar"
+topBar.Size=UDim2.new(1,0,0,28)
+topBar.BackgroundTransparency=1
+topBar.Parent=mainFrame
+
+local titleLabel=Instance.new("TextLabel")
+titleLabel.Name="TitleLabel"
+titleLabel.Size=UDim2.new(1,-85,1,0)
+titleLabel.Position=UDim2.new(0,10,0,0)
+titleLabel.BackgroundTransparency=1
+titleLabel.TextColor3=Color3.fromRGB(200,200,200)
+titleLabel.TextSize=13
+titleLabel.Text="FLY MENU"
+titleLabel.Font=Enum.Font.SourceSansBold
+titleLabel.TextXAlignment=Enum.TextXAlignment.Left
+titleLabel.Parent=topBar
+
+local settingsButton=Instance.new("TextButton")
+settingsButton.Name="SettingsButton"
+settingsButton.Size=UDim2.new(0,20,0,20)
+settingsButton.Position=UDim2.new(1,-72,0,4)
+settingsButton.BackgroundColor3=Color3.fromRGB(40,40,40)
+settingsButton.TextColor3=Color3.fromRGB(255,255,255)
+settingsButton.TextSize=12
+settingsButton.Text="⚙️"
+settingsButton.Font=Enum.Font.SourceSansBold
+settingsButton.BorderSizePixel=0
+settingsButton.Parent=topBar
+local settingsCorner=Instance.new("UICorner")
+settingsCorner.CornerRadius=UDim.new(0,4)
+settingsCorner.Parent=settingsButton
+
+local toggleUiButton=Instance.new("TextButton")
+toggleUiButton.Name="ToggleUiButton"
+toggleUiButton.Size=UDim2.new(0,20,0,20)
+toggleUiButton.Position=UDim2.new(1,-48,0,4)
+toggleUiButton.BackgroundColor3=Color3.fromRGB(40,40,40)
+toggleUiButton.TextColor3=Color3.fromRGB(255,255,255)
+toggleUiButton.TextSize=14
+toggleUiButton.Text="-"
+toggleUiButton.Font=Enum.Font.SourceSansBold
+toggleUiButton.BorderSizePixel=0
+toggleUiButton.Parent=topBar
+local toggleCorner=Instance.new("UICorner")
+toggleCorner.CornerRadius=UDim.new(0,4)
+toggleCorner.Parent=toggleUiButton
+
+local closeButton=Instance.new("TextButton")
+closeButton.Name="CloseButton"
+closeButton.Size=UDim2.new(0,20,0,20)
+closeButton.Position=UDim2.new(1,-24,0,4)
+closeButton.BackgroundColor3=Color3.fromRGB(180,40,40)
+closeButton.TextColor3=Color3.fromRGB(255,255,255)
+closeButton.TextSize=12
+closeButton.Text="❌"
+closeButton.Font=Enum.Font.SourceSansBold
+closeButton.BorderSizePixel=0
+closeButton.Parent=topBar
+local closeCorner=Instance.new("UICorner")
+closeCorner.CornerRadius=UDim.new(0,4)
+closeCorner.Parent=closeButton
+
+local contentFrame=Instance.new("Frame")
+contentFrame.Name="ContentFrame"
+contentFrame.Size=UDim2.new(1,0,0,82)
+contentFrame.Position=UDim2.new(0,0,0,28)
+contentFrame.BackgroundTransparency=1
+contentFrame.Parent=mainFrame
+
+local plusButton=Instance.new("TextButton")
+plusButton.Name="PlusButton"
+plusButton.Size=UDim2.new(0,45,0,36)
+plusButton.Position=UDim2.new(0,8,0,4)
+plusButton.BackgroundColor3=Color3.fromRGB(40,40,40)
+plusButton.TextColor3=Color3.fromRGB(255,255,255)
+plusButton.TextSize=18
+plusButton.Text="+"
+plusButton.Font=Enum.Font.SourceSansBold
+plusButton.BorderSizePixel=0
+plusButton.Parent=contentFrame
+local plusCorner=Instance.new("UICorner")
+plusCorner.CornerRadius=UDim.new(0,5)
+plusCorner.Parent=plusButton
+
+local minusButton=Instance.new("TextButton")
+minusButton.Name="MinusButton"
+minusButton.Size=UDim2.new(0,45,0,36)
+minusButton.Position=UDim2.new(0,8,0,42)
+minusButton.BackgroundColor3=Color3.fromRGB(40,40,40)
+minusButton.TextColor3=Color3.fromRGB(255,255,255)
+minusButton.TextSize=18
+minusButton.Text="-"
+minusButton.Font=Enum.Font.SourceSansBold
+minusButton.BorderSizePixel=0
+minusButton.Parent=contentFrame
+local minusCorner=Instance.new("UICorner")
+minusCorner.CornerRadius=UDim.new(0,5)
+minusCorner.Parent=minusButton
+
+local flyButton=Instance.new("TextButton")
+flyButton.Name="FlyButton"
+flyButton.Size=UDim2.new(0,150,0,36)
+flyButton.Position=UDim2.new(0,60,0,4)
+flyButton.BackgroundColor3=Color3.fromRGB(40,40,40)
+flyButton.TextColor3=Color3.fromRGB(255,255,255)
+flyButton.TextSize=14
+flyButton.Text="Fly: OFF"
+flyButton.Font=Enum.Font.SourceSansBold
+flyButton.BorderSizePixel=0
+flyButton.Parent=contentFrame
+local btnCorner=Instance.new("UICorner")
+btnCorner.CornerRadius=UDim.new(0,6)
+btnCorner.Parent=flyButton
+
+local speedBox=Instance.new("TextBox")
+speedBox.Name="SpeedBox"
+speedBox.Size=UDim2.new(0,150,0,36)
+speedBox.Position=UDim2.new(0,60,0,42)
+speedBox.BackgroundColor3=Color3.fromRGB(35,35,35)
+speedBox.TextColor3=Color3.fromRGB(255,255,255)
+speedBox.TextSize=15
+speedBox.Text=tostring(level)
+speedBox.Font=Enum.Font.SourceSansBold
+speedBox.ClearTextOnFocus=false
+speedBox.BorderSizePixel=0
+speedBox.Parent=contentFrame
+local boxCorner=Instance.new("UICorner")
+boxCorner.CornerRadius=UDim.new(0,6)
+boxCorner.Parent=speedBox
+
+local settingsFrame=Instance.new("Frame")
+settingsFrame.Name="SettingsFrame"
+settingsFrame.Size=UDim2.new(1,0,0,82)
+settingsFrame.Position=UDim2.new(0,0,0,28)
+settingsFrame.BackgroundTransparency=1
+settingsFrame.Visible=false
+settingsFrame.Parent=mainFrame
+
+local function createToggleRow(name, posY, callback)
+local label=Instance.new("TextLabel")
+label.Size=UDim2.new(0,120,0,32)
+label.Position=UDim2.new(0,12,0,posY)
+label.BackgroundTransparency=1
+label.TextColor3=Color3.fromRGB(220,220,220)
+label.TextSize=13
+label.Text=name
+label.Font=Enum.Font.SourceSansBold
+label.TextXAlignment=Enum.TextXAlignment.Left
+label.Parent=settingsFrame
+
+local toggleBg=Instance.new("TextButton")
+toggleBg.Size=UDim2.new(0,50,0,24)
+toggleBg.Position=UDim2.new(1,-62,0,posY+4)
+toggleBg.BackgroundColor3=Color3.fromRGB(50,50,50)
+toggleBg.Text=""
+toggleBg.BorderSizePixel=0
+toggleBg.Parent=settingsFrame
+local bgCorner=Instance.new("UICorner")
+bgCorner.CornerRadius=UDim.new(1,0)
+bgCorner.Parent=toggleBg
+
+local toggleCircle=Instance.new("Frame")
+toggleCircle.Size=UDim2.new(0,18,0,18)
+toggleCircle.Position=UDim2.new(0,3,0,3)
+toggleCircle.BackgroundColor3=Color3.fromRGB(200,200,200)
+toggleCircle.BorderSizePixel=0
+toggleCircle.Parent=toggleBg
+local circleCorner=Instance.new("UICorner")
+circleCorner.CornerRadius=UDim.new(1,0)
+circleCorner.Parent=toggleCircle
+
+local state = false
+toggleBg.MouseButton1Click:Connect(function()
+state = not state
+if state then
+toggleCircle:TweenPosition(UDim2.new(1,-21,0,3), Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.15, true)
+toggleBg.BackgroundColor3 = Color3.fromRGB(46,204,113)
+else
+toggleCircle:TweenPosition(UDim2.new(0,3,0,3), Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.15, true)
+toggleBg.BackgroundColor3 = Color3.fromRGB(50,50,50)
+end
+callback(state)
+end)
+end
+
+createToggleRow("Noclip", 6, function(state)
+noclipEnabled = state
+end)
+
+createToggleRow("Godmode", 44, function(state)
+godmodeEnabled = state
+end)
+
+local dragging=false
+local dragInput=nil
+local dragStart=nil
+local startPos=nil
+
+local function update(input)
+local delta=input.Position-dragStart
+mainFrame.Position=UDim2.new(startPos.X.Scale,startPos.X.Offset+delta.X,startPos.Y.Scale,startPos.Y.Offset+delta.Y)
+end
+
+topBar.InputBegan:Connect(function(input)
+if input.UserInputType==Enum.UserInputType.MouseButton1 or input.UserInputType==Enum.UserInputType.Touch then
+dragging=true
+dragStart=input.Position
+startPos=mainFrame.Position
+input.Changed:Connect(function()
+if input.UserInputState==Enum.UserInputState.End then
+dragging=false
+end
+end)
+end
+end)
+
+topBar.InputChanged:Connect(function(input)
+if input.UserInputType==Enum.UserInputType.MouseMovement or input.UserInputType==Enum.UserInputType.Touch then
+dragInput=input
+end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+if input==dragInput and dragging then
+update(input)
+end
+end)
+
+local function startFlying(character)
+local humanoidRootPart=character:FindFirstChild("HumanoidRootPart")
+local humanoid=character:FindFirstChildOfClass("Humanoid")
+if not humanoidRootPart or not humanoid then return end
+humanoid.PlatformStand=true
+humanoid.AutoRotate=false
+bodyVelocity=Instance.new("BodyVelocity")
+bodyVelocity.MaxForce=Vector3.new(1,1,1)*10^6
+bodyVelocity.Velocity=Vector3.zero
+bodyVelocity.Parent=humanoidRootPart
+bodyGyro=Instance.new("BodyGyro")
+bodyGyro.MaxTorque=Vector3.new(1,1,1)*10^6
+bodyGyro.P=10000
+bodyGyro.CFrame=camera.CFrame
+bodyGyro.Parent=humanoidRootPart
+end
+
+local function stopFlying(character)
+local humanoid=character and character:FindFirstChildOfClass("Humanoid")
+if humanoid then
+humanoid.PlatformStand=false
+humanoid.AutoRotate=true
+end
+if bodyVelocity then bodyVelocity:Destroy() bodyVelocity=nil end
+if bodyGyro then bodyGyro:Destroy() bodyGyro=nil end
+end
+
+local function toggleFly()
+local character=player.Character
+if not character then return end
+flying=not flying
+if flying then
+flyButton.Text="Fly: ON"
+flyButton.BackgroundColor3=Color3.fromRGB(46,204,113)
+startFlying(character)
+else
+flyButton.Text="Fly: OFF"
+flyButton.BackgroundColor3=Color3.fromRGB(40,40,40)
+stopFlying(character)
+end
+end
+
+settingsButton.MouseButton1Click:Connect(function()
+isSettingsOpen = not isSettingsOpen
+if isSettingsOpen then
+contentFrame.Visible = false
+settingsFrame.Visible = true
+settingsButton.BackgroundColor3 = Color3.fromRGB(60,60,60)
+else
+contentFrame.Visible = true
+settingsFrame.Visible = false
+settingsButton.BackgroundColor3 = Color3.fromRGB(40,40,40)
+end
+end)
+
+toggleUiButton.MouseButton1Click:Connect(function()
+isMinimized=not isMinimized
+if isMinimized then
+mainFrame.Size=UDim2.new(0,220,0,28)
+contentFrame.Visible=false
+settingsFrame.Visible=false
+toggleUiButton.Text="+"
+else
+mainFrame.Size=UDim2.new(0,220,0,115)
+if isSettingsOpen then
+settingsFrame.Visible=true
+contentFrame.Visible=false
+else
+contentFrame.Visible=true
+settingsFrame.Visible=false
+end
+toggleUiButton.Text="-"
+end
+end)
+
+closeButton.MouseButton1Index=nil
+closeButton.MouseButton1Click:Connect(function()
+flying=false
+stopFlying(player.Character)
+screenGui:Destroy()
+end)
+
+plusButton.MouseButton1Click:Connect(function()
+level=level+1
+flySpeed=getSpeedFromLevel(level)
+speedBox.Text=tostring(level)
+end)
+
+minusButton.MouseButton1Click:Connect(function()
+if level>1 then
+level=level-1
+flySpeed=getSpeedFromLevel(level)
+speedBox.Text=tostring(level)
+end
+end)
+
+speedBox.FocusLost:Connect(function(enterPressed)
+local textVal = speedBox.Text:gsub("%s+", "")
+if textVal == "" then
+level = 1
+else
+local num = tonumber(textVal)
+if num then
+if num < 1 then num = 1 end
+if num > 9000000000 then num = 9000000000 end
+level = math.floor(num)
+else
+level = 1
+end
+end
+flySpeed = getSpeedFromLevel(level)
+speedBox.Text = tostring(level)
+end)
+
+flyButton.MouseButton1Click:Connect(toggleFly)
+
+RunService.RenderStepped:Connect(function()
+local character = player.Character
+if character then
+if noclipEnabled then
+for _, part in ipairs(character:GetDescendants()) do
+if part:IsA("BasePart") then
+part.CanCollide = false
+end
+end
+end
+
+if godmodeEnabled then
+local humanoid = character:FindFirstChildOfClass("Humanoid")
+if humanoid then
+pcall(function()
+humanoid.MaxHealth = math.huge
+humanoid.Health = math.huge
+humanoid:SetStateEnabled(Enum.HumanoidStateType.Dead, false)
+humanoid:SetStateEnabled(Enum.HumanoidStateType.FallingDown, false)
+humanoid:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, false)
+end)
+end
+
+for _, part in ipairs(character:GetDescendants()) do
+if part:IsA("BasePart") then
+local touch = part:FindFirstChildOfClass("TouchTransmitter")
+if touch then
+touch:Destroy()
+end
+end
+end
+end
+end
+
+if not flying then return end
+if not character then return end
+local humanoidRootPart=character:FindFirstChild("HumanoidRootPart")
+local humanoid=character:FindFirstChildOfClass("Humanoid")
+if not humanoidRootPart or not humanoid or not bodyVelocity or not bodyGyro then return end
+
+bodyGyro.CFrame=camera.CFrame
+local moveDir=humanoid.MoveDirection
+if moveDir.Magnitude>0 then
+local camCFrame=camera.CFrame
+local lookVector=camCFrame.LookVector
+local rightVector=camCFrame.RightVector
+local flatLook=Vector3.new(lookVector.X,0,lookVector.Z)
+if flatLook.Magnitude>0 then flatLook=flatLook.Unit end
+local flatRight=Vector3.new(rightVector.X,0,rightVector.Z)
+if flatRight.Magnitude>0 then flatRight=flatRight.Unit end
+local forwardInput=moveDir:Dot(flatLook)
+local rightInput=moveDir:Dot(flatRight)
+local flyVector=(lookVector*forwardInput)+(rightVector*rightInput)
+if flyVector.Magnitude>0 then flyVector=flyVector.Unit end
+bodyVelocity.Velocity=flyVector*flySpeed
+else
+bodyVelocity.Velocity=Vector3.zero
+end
+end)
+
+player.CharacterAdded:Connect(function(character)
+flying=false
+flyButton.Text="Fly: OFF"
+flyButton.BackgroundColor3=Color3.fromRGB(40,40,40)
+end)
